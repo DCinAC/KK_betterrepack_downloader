@@ -1,10 +1,14 @@
 // ==UserScript==
 // @name         BetterRepack .zipmod bulk downloader
-// @namespace    betterrepack-bulk-dl
-// @version      1.1.0
+// @namespace    https://github.com/DCinAC/KK_betterrepack_downloader
+// @version      1.2.0
 // @description  Bulk-download .zipmod files from BetterRepack directory listings. Copy URLs for IDM/FDM batch import, push to Motrix/aria2 via JSON-RPC, or trigger sequential browser downloads.
 // @author       DCinAC
-// @license      GNU General Public License v3.0
+// @license      GPL-3.0-or-later
+// @homepageURL  https://github.com/DCinAC/KK_betterrepack_downloader
+// @supportURL   https://github.com/DCinAC/KK_betterrepack_downloader/issues
+// @downloadURL  https://github.com/DCinAC/KK_betterrepack_downloader/raw/main/betterrepack-bulk-dl.user.js
+// @updateURL    https://github.com/DCinAC/KK_betterrepack_downloader/raw/main/betterrepack-bulk-dl.user.js
 // @match        https://sideload.betterrepack.com/*
 // @match        http://sideload.betterrepack.com/*
 // @icon         https://sideload.betterrepack.com/download/theme/favicon.ico
@@ -29,6 +33,7 @@
     downloadDir: "", // empty = use download manager's default
     sequentialDelayMs: 800,
     defaultAction: null, // 'seq' | 'copy' | 'txt' | 'rpc' — null on first launch
+    subfolderEnabled: true, // append URL-derived subfolder to RPC downloads
   };
   const cfg = (k) => GM_getValue(k, DEFAULTS[k]);
   const setCfg = (k, v) => GM_setValue(k, v);
@@ -48,6 +53,24 @@
       }
     });
     return out;
+  };
+
+  // Build a per-URL subfolder name from the current pathname.
+  // /download/KKEC/Sideloader%20Modpack/Noble_kale/ → KKEC-Sideloader%20Modpack-Noble_kale
+  // Strips /download/ prefix, joins remaining segments with "-", sanitizes
+  // Windows-illegal chars. URL-encoded chars (e.g. %20) are kept verbatim.
+  const computeSubfolder = () => {
+    let p = location.pathname.replace(/^\/+|\/+$/g, "");
+    p = p.replace(/^download\//i, "");
+    p = p.replace(/\//g, "-");
+    p = p.replace(/[<>:"|?*\\]/g, "_");
+    return p;
+  };
+
+  const joinPath = (a, b) => {
+    if (!a) return b || "";
+    if (!b) return a;
+    return a.replace(/[\\/]+$/, "") + "/" + b.replace(/^[\\/]+/, "");
   };
 
   // ---------- actions ----------
@@ -75,7 +98,10 @@
   const sendToAria2 = (items) => {
     const url = cfg("rpcUrl");
     const secret = cfg("rpcSecret");
-    const dir = cfg("downloadDir");
+    const baseDir = cfg("downloadDir");
+    const useSub = cfg("subfolderEnabled");
+    const sub = useSub ? computeSubfolder() : "";
+    const finalDir = joinPath(baseDir, sub);
     if (!url) {
       toast('No RPC URL configured. Click "Settings".', true);
       return;
@@ -101,7 +127,7 @@
       if (secret) params.push(`token:${secret}`);
       params.push([it.url]);
       const options = { out: it.name };
-      if (dir) options.dir = dir;
+      if (finalDir) options.dir = finalDir;
       params.push(options);
 
       GM_xmlhttpRequest({
@@ -343,6 +369,16 @@
         box-sizing: border-box; font: inherit;
     }
     #brdl-modal .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; align-items: center; }
+    #brdl-modal .check-row {
+        display: flex; align-items: flex-start; gap: 8px;
+        margin: 10px 0 0; font-weight: 500; font-size: 13px;
+    }
+    #brdl-modal .check-row input { width: auto; margin-top: 2px; }
+    #brdl-modal .hint { font-size: 11px; opacity: .7; margin-top: 2px; }
+    #brdl-modal .hint code {
+        background: rgba(127,127,127,.18); padding: 1px 4px; border-radius: 3px;
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 11px;
+    }
     #brdl-modal button {
         padding: 6px 12px; border-radius: 6px; border: 1px solid #d0d7de; background: white; cursor: pointer;
     }
@@ -383,8 +419,15 @@
                 <input id="brdl-url" type="text" value="${escapeAttr(cfg("rpcUrl"))}">
                 <label>RPC secret (leave blank if none)</label>
                 <input id="brdl-secret" type="text" value="${escapeAttr(cfg("rpcSecret"))}">
-                <label>Download directory (absolute path; leave blank for default)</label>
+                <label>Base download directory (absolute path; leave blank for default)</label>
                 <input id="brdl-dir" type="text" value="${escapeAttr(cfg("downloadDir"))}">
+                <div class="check-row">
+                    <input id="brdl-subfolder" type="checkbox" ${cfg("subfolderEnabled") ? "checked" : ""}>
+                    <div>
+                        <label for="brdl-subfolder" style="display:inline; font-weight:500; font-size:13px;">Save into a subfolder derived from the URL <span style="opacity:.6">(RPC only)</span></label>
+                        <div class="hint">This page would save to: <code id="brdl-sub-preview"></code></div>
+                    </div>
+                </div>
                 <label>Sequential download delay (ms)</label>
                 <input id="brdl-delay" type="number" min="0" step="100" value="${cfg("sequentialDelayMs")}">
                 <div class="row">
@@ -397,11 +440,26 @@
     modal.addEventListener("click", (e) => {
       if (e.target === modal) modal.remove();
     });
+
+    // Live preview of the resolved download path.
+    const subInput = modal.querySelector("#brdl-subfolder");
+    const dirInput = modal.querySelector("#brdl-dir");
+    const preview = modal.querySelector("#brdl-sub-preview");
+    const updatePreview = () => {
+      const sub = subInput.checked ? computeSubfolder() : "";
+      const full = joinPath(dirInput.value.trim(), sub);
+      preview.textContent = full || "(download manager default)";
+    };
+    subInput.addEventListener("change", updatePreview);
+    dirInput.addEventListener("input", updatePreview);
+    updatePreview();
+
     modal.querySelector("#brdl-cancel").onclick = () => modal.remove();
     modal.querySelector("#brdl-save").onclick = () => {
       setCfg("rpcUrl", modal.querySelector("#brdl-url").value.trim());
       setCfg("rpcSecret", modal.querySelector("#brdl-secret").value.trim());
-      setCfg("downloadDir", modal.querySelector("#brdl-dir").value.trim());
+      setCfg("downloadDir", dirInput.value.trim());
+      setCfg("subfolderEnabled", subInput.checked);
       setCfg(
         "sequentialDelayMs",
         Math.max(

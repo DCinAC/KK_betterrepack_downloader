@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Download icon — light & dark</title>
+<style>
+    :root { color-scheme: light dark; }
+    body {
+        font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        margin: 0; padding: 32px;
+        display: grid; gap: 32px;
+        grid-template-columns: 1fr 1fr;
+    }
+    .panel {
+        padding: 32px; border-radius: 12px;
+        display: flex; flex-direction: column; align-items: center; gap: 16px;
+    }
+    .panel.light { background: #f6f8fa; color: #222; }
+    .panel.dark  { background: #161616; color: #e6e6e6; }
+    .row { display: flex; gap: 24px; align-items: center; }
+    h2 { margin: 0; font-size: 14px; letter-spacing: .04em; text-transform: uppercase; opacity: .7; }
+
+    /* ============================================================
+       DOWNLOAD ICON — pure CSS, no SVG
+       Two themed instances (.dl-icon.light / .dl-icon.dark) share
+       the same geometry; only --bg and --fg differ.
+       Size is driven by the parent's font-size: 1em = icon width.
+       ============================================================ */
+    .dl-icon {
+        --bg: #1ca0e6;
+        --fg: #ffffff;
+        width: 1em; height: 1em;
+        border-radius: 50%;
+        background: var(--bg);
+        position: relative; display: inline-block;
+        vertical-align: middle;
+    }
+    /* arrow (vertical shaft + downward triangular head), built as a single
+       white shape via clip-path. Coordinates are % of this pseudo-element. */
+    .dl-icon::before {
+        content: '';
+        position: absolute; left: 50%; top: 18%;
+        transform: translateX(-50%);
+        width: 60%; height: 50%;
+        background: var(--fg);
+        clip-path: polygon(
+            34% 0%,   68% 0%,    /* top of shaft */
+            68% 50%, 100% 50%,   /* right shoulder */
+            50% 100%,            /* arrow tip */
+              0% 50%,  34% 50%   /* left shoulder back to shaft */
+        );
+    }
+    /* bottom "tray" — a bracket ⊔ made from three borders of a box */
+    .dl-icon::after {
+        content: '';
+        position: absolute; left: 50%; bottom: 16%;
+        transform: translateX(-50%);
+        width: 64%; height: 22%;
+        border: 0 solid var(--fg);
+        box-sizing: border-box;
+        border-bottom-width: .12em;
+        border-left-width:   .12em;
+        border-right-width:  .12em;
+        border-radius: 0 0 .08em .08em;
+    }
+
+    /* themes */
+    .dl-icon.light { --bg: #1ca0e6; --fg: #ffffff; }
+    .dl-icon.dark  { --bg: #1f1f1f; --fg: #4ab8ff; box-shadow: 0 0 0 1px #333 inset; }
+
+    /* sample sizes — driven by font-size */
+    .s-sm { font-size: 24px; }
+    .s-md { font-size: 64px; }
+    .s-lg { font-size: 128px; }
+
+    code {
+        background: rgba(127,127,127,.18); padding: 1px 6px; border-radius: 4px;
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    }
+</style>
+</head>
+<body>
+
+<section class="panel light">
+    <h2>Light theme</h2>
+    <div class="row">
+        <span class="dl-icon light s-sm"></span>
+        <span class="dl-icon light s-md"></span>
+        <span class="dl-icon light s-lg"></span>
+    </div>
+    <p>Bright blue circle <code>#1ca0e6</code> with white glyph — matches the reference PNG and reads cleanly on light page backgrounds.</p>
+</section>
+
+<section class="panel dark">
+    <h2>Dark theme</h2>
+    <div class="row">
+        <span class="dl-icon dark s-sm"></span>
+        <span class="dl-icon dark s-md"></span>
+        <span class="dl-icon dark s-lg"></span>
+    </div>
+    <p>Inverted: neutral <code>#1f1f1f</code> disc with a bright accent-blue glyph <code>#4ab8ff</code>. Doesn't blow out on dark UIs, keeps the brand-blue cue.</p>
+</section>
+
+</body>
+</html>

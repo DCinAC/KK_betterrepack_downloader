@@ -1,0 +1,24 @@
+# OS junk
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# Editors / IDEs
+.vscode/
+.idea/
+.zed/
+*.swp
+*.swo
+*~
+
+# Node (if linting/formatting gets added later)
+node_modules/
+package-lock.json
+yarn.lock
+*.log
+
+# Local scratch
+scratch/
+tmp/
+*.bak
