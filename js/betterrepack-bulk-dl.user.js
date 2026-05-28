@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         BetterRepack .zipmod bulk downloader
-// @namespace    https://github.com/DCinAC/KK_betterrepack_downloader
+// @namespace    betterrepack-bulk-dl
 // @version      1.2.0
 // @description  Bulk-download .zipmod files from BetterRepack directory listings. Copy URLs for IDM/FDM batch import, push to Motrix/aria2 via JSON-RPC, or trigger sequential browser downloads.
 // @author       DCinAC
-// @license      GPL-3.0-or-later
+// @license      GNU General Public License v3.0
 // @homepageURL  https://github.com/DCinAC/KK_betterrepack_downloader
 // @supportURL   https://github.com/DCinAC/KK_betterrepack_downloader/issues
 // @downloadURL  https://github.com/DCinAC/KK_betterrepack_downloader/raw/main/betterrepack-bulk-dl.user.js
